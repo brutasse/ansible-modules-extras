@@ -78,6 +78,7 @@ options:
       - Name or id of the template to be used for creating the new instance.
       - Required when using C(state=present).
       - Mutually exclusive with C(ISO) option.
+      - Unix shell-style wildcards can be used to match a pattern.
     required: false
     default: null
   iso:
@@ -395,6 +396,7 @@ instance_name:
 '''
 
 import base64
+from fnmatch import fnmatch
 
 # import cloudstack common
 from ansible.module_utils.cloudstack import *
@@ -457,7 +459,11 @@ class AnsibleCloudStackInstance(AnsibleCloudStack):
             templates = self.cs.listTemplates(**args)
             if templates:
                 for t in templates['template']:
-                    if template in [ t['displaytext'], t['name'], t['id'] ]:
+                    if (
+                        template in [ t['displaytext'], t['name'], t['id'] ] or
+                        fnmatch(t['displaytext'], template) or
+                        fnmatch(t['name'], template)
+                    ):
                         self.template = t
                         return self._get_by_key(key, self.template)
             self.module.fail_json(msg="Template '%s' not found" % template)
